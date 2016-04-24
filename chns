@@ -1,0 +1,71 @@
+#20160423处理lan的chns数据
+import pandas as pd
+df=pd.read_csv("/home/chen/Desktop/as0.csv")
+
+df_bmi=df[df['bmi']>0]
+
+df_bmi['one']=1
+dfgroup=df_bmi['one'].groupby(df_bmi['IDind'])
+mm=dfgroup.count()
+
+tt=mm[mm>=4]
+
+df_res=df_bmi[[a in tt for a in df_bmi['IDind']]]
+
+df_res['one_2']=1
+df_res.head()
+res=pd.crosstab(df_res["WAVE"],df_res['one_2'])
+
+bmi_m,bmi_n=pd.factorize(df_res['IDind'])
+
+res_id=[]
+for i in range(4668):
+    w_values=df_res[df_res['IDind']==bmi_n[i]]['WAVE'].values
+    if set(w_values)>={1997,2000,2004,2006,2009,2011}:
+        res_id.append(bmi_n[i])
+
+
+        
+
+df_final=df_res[df_res['IDind']==res_id[0]]
+for i in range(len(res_id)-1):
+    df_final=df_final.append(df_res[df_res['IDind']==res_id[i+1]])
+
+
+df_final['wave']=df_final["WAVE"]-1997
+df_final.columns
+
+#sex,age,bmi
+df_final.shape
+
+df_gender=df_final.groupby(df_final["IDind"])["GENDER"].mean()
+df_gender.shape
+#df_final_merge=pd.merge(df_final,df_gender_series,on="IDind",how="left")
+for i in range(1201):
+    for j in range(7206):
+        if df_gender.index[i]==df_final["IDind"].values[j]:
+            df_final["GENDER"].values[j]=df_gender.values[i]
+
+
+df_nationality=df_final.groupby(df_final["IDind"])["NATIONALITY"].mean()
+#df_final_merge=pd.merge(df_final,df_gender_series,on="IDind",how="left")
+for i in range(1201):
+    for j in range(7206):
+        if df_nationality.index[i]==df_final["IDind"].values[j]:
+            df_final["NATIONALITY"].values[j]=df_nationality.values[i]
+
+
+
+df_a11=df_final.groupby(df_final["IDind"])["A11"].max()
+#df_final_merge=pd.merge(df_final,df_gender_series,on="IDind",how="left")
+for i in range(1201):
+    for j in range(7206):
+        if df_a11.index[i]==df_final["IDind"].values[j]:
+            df_final["A11"].values[j]=df_a11.values[i]
+            
+df_a12=df_final.groupby(df_final["IDind"])["A12"].max()
+#df_final_merge=pd.merge(df_final,df_gender_series,on="IDind",how="left")
+for i in range(1201):
+    for j in range(7206):
+        if df_a12.index[i]==df_final["IDind"].values[j]:
+            df_final["A12"].values[j]=df_a12.values[i]
