@@ -1,0 +1,81 @@
+import pandas as pd
+import numpy as np
+
+
+df=pd.read_csv("/media/chen/8CE4486EE4485C98/tianchi/fresh_comp_offline/user_item.csv")
+
+df_cross=pd.crosstab([df["user_id"].values,df["item_id"].values],[df["day"].values,df["behavior_type"].values],
+            rownames=["item_id","user_id"],colnames=['day','behavior_type'])
+
+m,n=pd.factorize(df["day"])
+col_list=list(set(n))
+mn=set(n)
+sort_list=sorted(col_list)
+
+
+columns_list=["user_id","item_id"]
+for a in range(31):
+    for i in range(1,5,1):
+        strs="d"+sort_list[a]+"_"+str(i)
+        columns_list.append(strs)
+      
+
+df_res=pd.DataFrame(df_temp.values,columns=columns_list)
+
+df_res.to_csv("/media/chen/8CE4486EE4485C98/tianchi/fresh_comp_offline/all_data_day.csv",index=False)
+
+### remove the user_id and item_id whose behavior_type are 0 in 5 days
+
+df_res["5_day"]=df_res.iloc[:,-20:].sum(axis=1)
+df_res_try1=df_res[df_res['5_day']>0]
+
+# df_res_try1
+df_res_try1.shape
+(142773, 127)
+
+### use randomForestClassifier,svm,xgboost to classifier
+**the last column as the label,and the rest as the feature
+
+
+df_res_try1_1=df_res_try1[df_res_try1.iloc[:,-2]>0]
+df_res_try1_0=df_res_try1[df_res_try1.iloc[:,-2]==0]
+df_res_try1_0.shape,df_res_try1_1.shape,df_res_try1_0.shape[0]/df_res_try1_1.shape[0]
+
+
+##正负训练集数量不匹配，需更改以匹配
+
+new_1=np.tile(df_res_try1_1,(194,1))
+new_0=df_res_try1_0.values
+df_res_new=np.append(new_1,new_0,axis=0)
+df_res_new.shape
+#(283663, 127)
+
+#split all dato into train and test
+
+from sklearn.cross_validation import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.grid_search import GridSearchCV
+import sklearn.metrics  as sm
+
+df_res_new_D=pd.DataFrame(df_res_new,columns=df_res_try1.columns)
+df_res_new_D.head()
+
+X_train,X_test,y_train,y_test=train_test_split(df_res_new_D.iloc[:,-21:-5],df_res_new_D.iloc[:,-2],test_size=0.3)
+
+
+
+clf_rfc=RandomForestClassifier()
+parameters={'n_estimators':[100,500],"max_features":["auto","sqrt"]}
+clf_rfc_grid=GridSearchCV(clf_rfc,parameters)
+clf_rfc_grid
+
+#print sm.classification_report(y_test,clf_rfc.predict(X_test))
+
+
+clf_rfc_grid.fit(X_train,y_train)
+
+#for param,mean_score,scores in clf_rfc_grid.grid_scores_:
+abc=clf_rfc_grid.grid_scores_
+abc
+
+sm.confusion_matrix(df_res_try1.iloc[:,-2],clf_rfc_grid.predict(df_res_try1.iloc[:,-21:-5]))
